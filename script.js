@@ -52,21 +52,22 @@ const moveNoButton = () => {
     const btnWidth = noBtn.offsetWidth;
     const btnHeight = noBtn.offsetHeight;
 
-    // Random coords within 80% of screen to avoid edges
-    const maxX = window.innerWidth * 0.8;
-    const maxY = window.innerHeight * 0.8;
+    // Adjust movement range based on screen size
+    const isMobile = window.innerWidth <= 768;
+    const moveRange = isMobile ? 0.6 : 0.8; // Smaller range on mobile
+
+    // Random coords within screen to avoid edges
+    const maxX = window.innerWidth * moveRange;
+    const maxY = window.innerHeight * moveRange;
     const randomX = Math.random() * maxX - (maxX / 2);
     const randomY = Math.random() * maxY - (maxY / 2);
 
-    // We use Fixed position logic via translate for smoother performance
-    // But since the button is in a relative flex container, we set position to absolute
-    // relative to the nearest positioned ancestor (btn-group) or just use transform
-
-    // Quick hack: Move it out of the flow slightly
+    // Use Fixed position logic via translate for smoother performance
     noBtn.style.position = 'fixed';
     noBtn.style.left = '50%';
     noBtn.style.top = '50%';
     noBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
+    noBtn.style.zIndex = '100';
 
     // Visual Style update to make it look "weaker"
     noBtn.style.opacity = Math.max(0.5, 1 - (phraseIndex * 0.1));
@@ -92,7 +93,25 @@ window.acceptProposal = function () {
     // Show Success Layer
     const layer = document.getElementById('successScreen');
     layer.style.opacity = '1';
+    layer.style.pointerEvents = 'auto';
     layer.querySelector('h2').style.transform = 'scale(1)';
+
+    // Scroll to top of success overlay
+    setTimeout(() => {
+        layer.scrollTop = 0;
+
+        // Hide scroll indicator on scroll
+        const scrollIndicator = layer.querySelector('.scroll-indicator');
+        if (scrollIndicator) {
+            layer.addEventListener('scroll', function hideIndicator() {
+                if (layer.scrollTop > 50) {
+                    scrollIndicator.style.opacity = '0';
+                    scrollIndicator.style.transition = 'opacity 0.5s';
+                    layer.removeEventListener('scroll', hideIndicator);
+                }
+            });
+        }
+    }, 100);
 
     // Trigger CSS Heart Rain
     createHeartRain();
@@ -217,10 +236,20 @@ let targetRotX = 0;
 let targetRotY = 0;
 let mouse = { x: 0, y: 0 };
 
+// Mouse movement for desktop
 document.addEventListener('mousemove', e => {
     mouse.x = (e.clientX - width / 2) * 0.001;
     mouse.y = (e.clientY - height / 2) * 0.001;
 });
+
+// Touch support for mobile
+document.addEventListener('touchmove', e => {
+    if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        mouse.x = (touch.clientX - width / 2) * 0.001;
+        mouse.y = (touch.clientY - height / 2) * 0.001;
+    }
+}, { passive: true });
 
 function animate() {
     requestAnimationFrame(animate);
